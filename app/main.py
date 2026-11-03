@@ -1,8 +1,6 @@
 import argparse
-import os
-import sys
 
-from app.ai import Conversation
+from app.ai import Agent
 
 
 def main():   
@@ -10,8 +8,8 @@ def main():
     p.add_argument("-p", required=True)
     args = p.parse_args()
     
-    ai=Conversation(clear_cache=True)
-    chat = ai.prompt(args)    
+    ai=Agent()
+    ai.prompt(args)    
     
 
     

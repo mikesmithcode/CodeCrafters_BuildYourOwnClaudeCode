@@ -32,6 +32,11 @@ def Read(tool_call_id, filepath):
     with open(filepath, 'r') as f:
         return tool_response(tool_call_id, f.read())
 
+def Write(tool_call_id, filepath, content):
+    with open(filepath, 'w') as f:
+        f.write(content)
+        return tool_response(tool_call_id, "Ok")
+
 tool_list = [
                 {
                     "type": "function",
@@ -49,6 +54,27 @@ tool_list = [
                             "required": ["file_path"],
                         },
                     },
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "Write",
+                        "description": "Write content to a file",
+                        "parameters": {
+                        "type": "object",
+                        "required": ["file_path", "content"],
+                        "properties": {
+                            "file_path": {
+                            "type": "string",
+                            "description": "The path of the file to write to"
+                            },
+                            "content": {
+                            "type": "string",
+                            "description": "The content to write to the file"
+                            }
+                        }
+                        }
+                    }
                 }
             ]
 

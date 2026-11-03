@@ -3,11 +3,11 @@ import os
 
 from app.load_config import API_KEY, BASE_URL, DEFAULT_MODEL, CACHE_FILE
 from app.tools import tool_list, parse_tool_call, extract_tool_calls
-from app.tools import Read
+from app.tools import Read, Write
 
 
-class Conversation:
-    def __init__(self, clear_cache=False):
+class Agent:
+    def __init__(self):
         self.client =  OpenAI(api_key=API_KEY, base_url=BASE_URL)
         self.current_response=None
         self.message_history=[]
@@ -49,6 +49,9 @@ class Conversation:
                     
                     if fn_name == 'Read':
                         msg =Read(tool_call_id, args["file_path"])
+                        self.message_history.append(msg)
+                    elif fn_name == 'Write':
+                        msg = Write(tool_call_id, args["file_path"], args["content"])
                         self.message_history.append(msg)           
                 
         #Print final response
