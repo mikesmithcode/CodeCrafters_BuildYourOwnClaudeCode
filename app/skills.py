@@ -2,7 +2,7 @@ from pathlib import Path
 import os
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-SKILLS_DIR = PROJECT_ROOT/ "app" / ".claude" / "skills"
+SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
 
 def get_skills_msg():
     msg= crawl_skills_frontmatter()
