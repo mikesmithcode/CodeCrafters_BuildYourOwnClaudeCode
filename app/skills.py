@@ -6,7 +6,6 @@ SKILLS_DIR = PROJECT_ROOT/ "app" / ".claude" / "skills"
 
 def get_skills_msg():
     msg= crawl_skills_frontmatter()
-    print(msg)
     return { 
             "role": "system", 
             "content": msg
