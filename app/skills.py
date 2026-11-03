@@ -6,17 +6,12 @@ SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
 
 def get_skills_msg():
     msg= crawl_skills_frontmatter()
-    if not msg:
-        return None
     return { 
             "role": "system", 
             "content": msg
             }
 
-def crawl_skills_frontmatter():
-    if not SKILLS_DIR.exists():
-        return ""
-    
+def crawl_skills_frontmatter():    
     skills = []
     for root, dirs, files in os.walk(SKILLS_DIR.resolve()):
         if "SKILL.md" in files:
