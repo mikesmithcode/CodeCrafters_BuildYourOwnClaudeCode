@@ -4,17 +4,19 @@ import os
 from app.load_config import API_KEY, BASE_URL, DEFAULT_MODEL, CACHE_FILE
 from app.tools import tool_list, parse_tool_call, extract_tool_calls
 from app.tools import Read, Write, Bash
-from app.skills import get_skills_msg
+from app.skills import get_skills_msg, get_skill_body
 
 
 class Agent:
     def __init__(self):
         self.client =  OpenAI(api_key=API_KEY, base_url=BASE_URL)
         self.current_response=None
-        self.message_history=[get_skills_msg()]        
+        skills_msg, skills_list = get_skills_msg()
+        self.message_history=[skills_msg]  
+        self.skills = skills_list      
         
     def prompt(self, args):
-        initial_message_content = args.p
+        initial_message_content = self._process_prompt(args.p)
         initial_message = {"role": "user", "content": initial_message_content}
         self.message_history.append(initial_message)
         self._start_agent_loop()
@@ -66,7 +68,15 @@ class Agent:
         msg = response.choices[0].message
         self.message_history.append(msg)
         return msg
-        
+    
+    def _process_prompt(self, prompt):
+        if prompt[0] == "/":
+            for skill in self.skills:
+                if skill in prompt:
+                    return get_skill_body(skill)
+        else:
+            return prompt
+            
 
  
     

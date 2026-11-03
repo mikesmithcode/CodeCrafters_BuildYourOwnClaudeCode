@@ -5,40 +5,66 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
 
 def get_skills_msg():
-    msg= crawl_skills_frontmatter()
-    return { 
+    skills= crawl_skills(frontmatter=True)
+    msg = "You have access to the following skills:\n\n" + "\n".join(skills.values())
+    
+    skills_msg = { 
             "role": "system", 
             "content": msg
             }
+    skills_list = skills.keys()
+    return skills_msg, skills_list
 
-def crawl_skills_frontmatter():    
-    skills = []
+def get_skill_body(skill):
+    body=parse_skill_file(SKILLS_DIR.resolve() / skill / "SKILL.md", frontmatter=False)
+    return body
+    
+
+def crawl_skills(frontmatter=True):    
+    skills = {}
     for root, dirs, files in os.walk(SKILLS_DIR.resolve()):
         if "SKILL.md" in files:
-            skill_name, description = parse_skill_frontmatter(os.path.join(root, "SKILL.md"))
+            skill_name, description = parse_skill_file(os.path.join(root, "SKILL.md"), frontmatter=frontmatter)
             if skill_name:
-                skills.append(f"- {skill_name}: {description}")
+                skills[skill_name] = f"- {skill_name}: {description}"
     
-    if not skills:
-        return ""
-    
-    return "You have access to the following skills:\n\n" + "\n".join(skills)
+    return skills
 
 
-def parse_skill_frontmatter(filepath):
+def parse_skill_file(filepath, frontmatter=True):
     name = ""
     description = ""
+    body_lines = []
+    seen_delimiters = 0
     
     with open(filepath, "r", encoding="utf-8") as f:
         for line in f:
-            line = line.strip()
-            lower_line = line.lower()
-            if lower_line.startswith("name:"):
-                name = line.split(":", 1)[1].strip().strip('"\'')
-            elif lower_line.startswith("description:"):
-                description = line.split(":", 1)[1].strip().strip('"\'')
-                
-    return name, description
-
+            stripped = line.strip()
+            
+            # Check for frontmatter delimiter line
+            if stripped.startswith("---") and all(c == '-' for c in stripped):
+                seen_delimiters += 1
+                if frontmatter and seen_delimiters == 2:
+                    # Finished reading frontmatter
+                    return name, description
+                continue
+            
+            # Between the 1st and 2nd delimiter: inside frontmatter
+            if seen_delimiters == 1:
+                lower = stripped.lower()
+                if lower.startswith("name:"):
+                    name = stripped.split(":", 1)[1].strip().strip('"\'')
+                elif lower.startswith("description:"):
+                    description = stripped.split(":", 1)[1].strip().strip('"\'')
+            
+            # After the 2nd delimiter: inside body
+            elif seen_delimiters >= 2:
+                if not frontmatter:
+                    body_lines.append(line)
+                    
+    if frontmatter:
+        return name, description
+        
+    return "".join(body_lines).strip()
 
     
