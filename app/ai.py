@@ -3,7 +3,7 @@ import os
 
 from app.load_config import API_KEY, BASE_URL, DEFAULT_MODEL, CACHE_FILE
 from app.tools import tool_list, parse_tool_call, extract_tool_calls
-from app.tools import Read, Write
+from app.tools import Read, Write, Bash
 
 
 class Agent:
@@ -49,10 +49,15 @@ class Agent:
                     
                     if fn_name == 'Read':
                         msg =Read(tool_call_id, args["file_path"])
-                        self.message_history.append(msg)
                     elif fn_name == 'Write':
-                        msg = Write(tool_call_id, args["file_path"], args["content"])
-                        self.message_history.append(msg)           
+                        msg = Write(tool_call_id, args["file_path"], args["content"])  
+                    elif fn_name == 'Bash':
+                        msg= Bash(tool_call_id, args["command"])   
+                    else:
+                        print("tool not implemented")      
+                        raise("Tool not implemented")
+                    
+                    self.message_history.append(msg)
                 
         #Print final response
         print(msg.content)

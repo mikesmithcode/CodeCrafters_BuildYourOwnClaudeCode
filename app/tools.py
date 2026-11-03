@@ -1,5 +1,6 @@
 
 import json
+import subprocess
 
 def tool_response(tool_call_id, content):
     return {"role": "tool",
@@ -37,6 +38,15 @@ def Write(tool_call_id, filepath, content):
         f.write(content)
         return tool_response(tool_call_id, "Ok")
 
+def Bash(tool_call_id, command):
+    #Options mean that stderr appears in stdout
+    result = subprocess.run([command], shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    if not result.stdout.strip():
+        msg = "Ok"
+    else:
+        msg = result.stdout
+    return tool_response(tool_call_id, msg)
+
 tool_list = [
                 {
                     "type": "function",
@@ -71,6 +81,23 @@ tool_list = [
                             "content": {
                             "type": "string",
                             "description": "The content to write to the file"
+                            }
+                        }
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "Bash",
+                        "description": "Execute a shell command",
+                        "parameters": {
+                        "type": "object",
+                        "required": ["command"],
+                        "properties": {
+                            "command": {
+                            "type": "string",
+                            "description": "The command to execute"
                             }
                         }
                         }
