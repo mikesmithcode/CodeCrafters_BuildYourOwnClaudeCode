@@ -4,15 +4,14 @@ import os
 from app.load_config import API_KEY, BASE_URL, DEFAULT_MODEL, CACHE_FILE
 from app.tools import tool_list, parse_tool_call, extract_tool_calls
 from app.tools import Read, Write, Bash
+from app.skills import get_skills_msg
 
 
 class Agent:
     def __init__(self):
         self.client =  OpenAI(api_key=API_KEY, base_url=BASE_URL)
         self.current_response=None
-        self.message_history=[]
-        if os.path.exists(CACHE_FILE) and clear_cache:
-            os.remove(CACHE_FILE)
+        self.message_history=[get_skills_msg()]        
         
     def prompt(self, args):
         initial_message_content = args.p
