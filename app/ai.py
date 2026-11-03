@@ -54,8 +54,7 @@ class Agent:
                         msg = Write(tool_call_id, args["file_path"], args["content"])  
                     elif fn_name == 'Bash':
                         msg= Bash(tool_call_id, args["command"])   
-                    else:
-                        print("tool not implemented")      
+                    else:     
                         raise("Tool not implemented")
                     
                     self.message_history.append(msg)
@@ -70,12 +69,14 @@ class Agent:
         return msg
     
     def _process_prompt(self, prompt):
-        if prompt[0] == "/":
+        if prompt.startswith("/"):
+            skill_cmd = prompt[1:].strip().split()[0]  
             for skill in self.skills:
-                if skill in prompt:
-                    return get_skill_body(skill)
-        else:
-            return prompt
+                if skill == skill_cmd:
+                    body = get_skill_body(skill)
+                    if body:
+                        return body
+        return prompt
             
 
  
