@@ -25,11 +25,19 @@ def crawl_skills_frontmatter():
 
 
 def parse_skill_frontmatter(filepath):
-    with open(filepath , "r") as f:
-        _ =f.readline()
-        name =f.readline().split(": ")[1].strip()
-        description = f.readline().split(": ")[1].strip()
-    return (name, description)
+    name = ""
+    description = ""
+    
+    with open(filepath, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            # Look for lines starting with name: or description:
+            if line.startswith("name:"):
+                name = line.split(":", 1)[1].strip().strip('"\'')
+            elif line.startswith("description:"):
+                description = line.split(":", 1)[1].strip().strip('"\'')
+                
+    return name, description
 
 
     

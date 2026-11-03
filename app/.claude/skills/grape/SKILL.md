@@ -1,5 +1,5 @@
 ---
-name: apple
+name: grape
 description: Runs the grape test suite and reports failures.
 ---
 
