@@ -2,37 +2,66 @@ from openai import OpenAI
 import os
 
 from app.load_config import API_KEY, BASE_URL, DEFAULT_MODEL, CACHE_FILE
-from app.helpers import dict_to_namespace, extract_tool_call, parse_args, parse_fn_name, read_file, load_cache, cache_response
-from app.tools import tool_list
+from app.tools import tool_list, parse_tool_call, extract_tool_calls
+from app.tools import Read
 
 
-class AI:
+class Conversation:
     def __init__(self, clear_cache=False):
         self.client =  OpenAI(api_key=API_KEY, base_url=BASE_URL)
-        self.chat=None
+        self.current_response=None
+        self.message_history=[]
         if os.path.exists(CACHE_FILE) and clear_cache:
             os.remove(CACHE_FILE)
         
-    
     def prompt(self, args):
-        if os.path.exists(CACHE_FILE):
-            chat = load_cache(CACHE_FILE)
-        else:     
-            chat = self.client.chat.completions.create(
+        initial_message_content = args.p
+        initial_message = {"role": "user", "content": initial_message_content}
+        self.message_history.append(initial_message)
+        self._start_agent_loop()
+    
+    def _start_agent_loop(self):
+        """_send_message
+        
+        Internal worker that sends current message history to LLM
+        updates the current response to be processed
+        """
+        
+        while True:
+            # Send request to LLM and receive response
+            response = self.client.chat.completions.create(
                         model=DEFAULT_MODEL,
-                        messages=[{"role": "user", "content": args.p}],
+                        messages=self.message_history,
                         tools=tool_list,
                     )
-            cache_response(chat, CACHE_FILE)
+                
+            if not response.choices or len(response.choices) == 0:
+                raise RuntimeError("no choices in response")
         
-        if not chat.choices or len(chat.choices) == 0:
-            raise RuntimeError("no choices in response")
-        
-        self.chat=chat
-        return chat
+            #get message and update message history.    
+            msg = self._update_message(response)
+            tool_calls = extract_tool_calls(msg)
+            if tool_calls is None:
+                break
+            else:
+                for tool_call in tool_calls:
+                    fn_name, tool_call_id, args=parse_tool_call(tool_call)
+                    
+                    if fn_name == 'Read':
+                        msg =Read(tool_call_id, args["file_path"])
+                        self.message_history.append(msg)           
+                
+        #Print final response
+        print(msg.content)
     
-    def call_tools(self):
-        return extract_tool_call(self.chat)
+    # Extracts message from response and adds message to history
+    def _update_message(self, response):
+        msg = response.choices[0].message
+        self.message_history.append(msg)
+        return msg
+        
+
+ 
     
         
         

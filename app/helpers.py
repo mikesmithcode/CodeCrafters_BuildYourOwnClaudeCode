@@ -11,27 +11,7 @@ def dict_to_namespace(d):
         return d
 
 
-def extract_tool_call(response):
-    """Extract the tool_call from the openai response"""
-    try:
-        message = response.choices[0].message
-        if hasattr(message, "tool_calls") and message.tool_calls and len(message.tool_calls) > 0:
-            return message.tool_calls[0]
-        return None
-    except Exception as e:
-        print(f"Error extracting tool_call: {e}")
-        return None
 
-def extract_text_response(response):
-   return response.choices[0].message.content
-   
-
-def parse_fn_name(tool_call):
-    return tool_call.function.name
-
-
-def parse_args(tool_call):
-    return json.loads(tool_call.function.arguments)
 
 
 def read_file(filepath):
