@@ -5,7 +5,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
 
 def get_skills_msg():
-    skills= crawl_skills(frontmatter=True)
+    skills= crawl_skills()
     msg = "You have access to the following skills:\n\n" + "\n".join(skills.values())
     
     skills_msg = { 
