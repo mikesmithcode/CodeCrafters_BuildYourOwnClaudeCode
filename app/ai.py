@@ -4,7 +4,7 @@ import os
 from app.load_config import API_KEY, BASE_URL, DEFAULT_MODEL, CACHE_FILE
 from app.tools import tool_list, parse_tool_call, extract_tool_calls
 from app.tools import Read, Write, Bash
-from app.skills import get_skills, get_skill_body
+from app.skills import get_skills, get_skill_body, parse_skill_request, apply_arg_substitution
 
 
 class Agent:
@@ -71,10 +71,11 @@ class Agent:
     def _process_prompt(self, prompt):
         if prompt.startswith("/"):
             self.message_history = []
-            skill_cmd = prompt[1:].strip().split()[0]  
+            skill_cmd, args = parse_skill_request(prompt)
             for skill in self.skills:
                 if skill == skill_cmd:
                     body = get_skill_body(skill)
+                    body = apply_arg_substitution(body, args)
                     if body:
                         return body
         return prompt

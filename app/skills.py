@@ -20,6 +20,12 @@ def get_skills():
     skills_list = skills.keys()
     return skills_msg, skills_list
 
+def parse_skill_request(prompt):
+    """This is a prompt which has form /skill_name arg1 arg2 etc"""
+    skill_name, *args = prompt[1:].strip().split()
+    return skill_name, args
+
+
 def get_skill_body(skill):
     """Convenience method to extract skill body"""
     skills_dir = get_skills_dir()
@@ -35,6 +41,12 @@ def get_skill_body(skill):
             if name == skill:
                 return parse_skill_file(os.path.join(root, "SKILL.md"), frontmatter=False)
     return ""
+
+def apply_arg_substitution(body, args):
+    for i,arg in enumerate(args):
+        body=body.replace(f"${i}", arg)
+    body=body.replace("$ARGUMENTS", " ".join(args))
+    return body
     
 
 def crawl_skills(): 
