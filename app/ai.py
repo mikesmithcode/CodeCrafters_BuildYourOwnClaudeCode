@@ -17,7 +17,6 @@ class Agent:
         
     def prompt(self, args):
         self._process_prompt(args.p)
-        print("msgs", self.message_history)
         self._start_agent_loop()
     
     def _start_agent_loop(self):
