@@ -25,7 +25,7 @@ class Agent:
         """_send_message
         
         Internal worker that sends current message history to LLM
-        updates the current response to be processed
+        updates the current response to be processed and calls tools
         """
         
         while True:

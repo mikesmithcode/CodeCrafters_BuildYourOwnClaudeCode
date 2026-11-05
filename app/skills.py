@@ -16,15 +16,20 @@ def get_skills_msg():
     return skills_msg, skills_list
 
 def get_skill_body(skill):
-    body=parse_skill_file(SKILLS_DIR.resolve() / skill / "SKILL.md", frontmatter=False)
-    return body
+    """Convenience method to extract skill body"""    
+    return parse_skill_file(SKILLS_DIR.resolve() / skill / "SKILL.md", frontmatter=False)
+
     
 
-def crawl_skills(frontmatter=True):    
+def crawl_skills(): 
+    """crawl skills
+    
+    This works its way through every skill folder in SKILLS_DIR
+    and adds it to a dictionary"""   
     skills = {}
     for root, dirs, files in os.walk(SKILLS_DIR.resolve()):
         if "SKILL.md" in files:
-            skill_name, description = parse_skill_file(os.path.join(root, "SKILL.md"), frontmatter=frontmatter)
+            skill_name, description = parse_skill_file(os.path.join(root, "SKILL.md"), frontmatter=True)
             if skill_name:
                 skills[skill_name] = f"- {skill_name}: {description}"
     
@@ -32,6 +37,14 @@ def crawl_skills(frontmatter=True):
 
 
 def parse_skill_file(filepath, frontmatter=True):
+    """Parsing the skill file
+    
+    1) If frontmatter = True it
+    looks between the opening --- and second --- and then 
+    strips out the name and description and returns them
+    2) If frontmatter = False it finds the body - everything after second ---
+    and returns it.
+    """
     name = ""
     description = ""
     body_lines = []
