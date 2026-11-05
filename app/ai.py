@@ -16,9 +16,8 @@ class Agent:
         self.skills = skills_list      
         
     def prompt(self, args):
-        initial_message_content = self._process_prompt(args.p)
-        initial_message = {"role": "user", "content": initial_message_content}
-        self.message_history.append(initial_message)
+        self._process_prompt(args.p)
+        print("msgs", self.message_history)
         self._start_agent_loop()
     
     def _start_agent_loop(self):
@@ -70,16 +69,23 @@ class Agent:
     
     def _process_prompt(self, prompt):
         if prompt.startswith("/"):
-            self.message_history = []
-            skill_cmd, args = parse_skill_request(prompt)
-            for skill in self.skills:
-                if skill == skill_cmd:
-                    body = get_skill_body(skill)
-                    body = apply_arg_substitution(body, args)
-                    if body:
-                        return body
-        return prompt
+            # If skills called for
+            skill_cmds, args = parse_skill_request(prompt, self.skills)
             
+            for skill in skill_cmds:
+                if skill in self.skills:
+                    skill_body = get_skill_body(skill)
+                    skill_body = apply_arg_substitution(skill_body, args)
+                    skill_msg = {"role": "user", "content": skill_body}
+                    self.message_history.append(skill_msg)
+        else:
+            #Otherwise send unaltered user prompt
+            user_prompt = {"role": "user", "content": prompt}
+            self.message_history.append(user_prompt)
+            
+        
+        
+                
 
  
     

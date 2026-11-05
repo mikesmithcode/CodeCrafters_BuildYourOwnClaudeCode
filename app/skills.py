@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+import re
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -20,10 +21,14 @@ def get_skills():
     skills_list = skills.keys()
     return skills_msg, skills_list
 
-def parse_skill_request(prompt):
-    """This is a prompt which has form /skill_name arg1 arg2 etc"""
-    skill_name, *args = prompt[1:].strip().split()
-    return skill_name, args
+def parse_skill_request(prompt, existing_skills):
+    """This is a prompt which has form /skill_name /skill_name2 arg1 arg2 etc"""
+    matches = re.findall(r'/\w+', prompt)
+    skill_names = [match[1:] for match in matches if match[1:] in existing_skills]
+    for skill in skill_names:
+        prompt=prompt.replace("/" + skill, "")
+    args=prompt.strip().split(" ")    
+    return skill_names, args
 
 
 def get_skill_body(skill):
