@@ -2,9 +2,14 @@ from pathlib import Path
 import os
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-SKILLS_DIR = PROJECT_ROOT / ".claude" / "skills"
 
-def get_skills_msg():
+def get_skills_dir() -> Path:
+    cwd_skills = Path.cwd() / ".claude" / "skills"
+    if cwd_skills.exists():
+        return cwd_skills
+    return PROJECT_ROOT / ".claude" / "skills"
+
+def get_skills():
     skills= crawl_skills()
     msg = "You have access to the following skills:\n\n" + "\n".join(skills.values())
     
@@ -16,9 +21,20 @@ def get_skills_msg():
     return skills_msg, skills_list
 
 def get_skill_body(skill):
-    """Convenience method to extract skill body"""    
-    return parse_skill_file(SKILLS_DIR.resolve() / skill / "SKILL.md", frontmatter=False)
+    """Convenience method to extract skill body"""
+    skills_dir = get_skills_dir()
+    skill_file = skills_dir / skill / "SKILL.md"
 
+    if skill_file.exists():
+        return parse_skill_file(skill_file, frontmatter=False)
+    
+    # Fallback search if folder name differs
+    for root, dirs, files in os.walk(skills_dir):
+        if "SKILL.md" in files:
+            name, _ = parse_skill_file(os.path.join(root, "SKILL.md"), frontmatter=True)
+            if name == skill:
+                return parse_skill_file(os.path.join(root, "SKILL.md"), frontmatter=False)
+    return ""
     
 
 def crawl_skills(): 
@@ -27,7 +43,8 @@ def crawl_skills():
     This works its way through every skill folder in SKILLS_DIR
     and adds it to a dictionary"""   
     skills = {}
-    for root, dirs, files in os.walk(SKILLS_DIR.resolve()):
+    skills_dir = get_skills_dir()
+    for root, _, files in os.walk(skills_dir):
         if "SKILL.md" in files:
             skill_name, description = parse_skill_file(os.path.join(root, "SKILL.md"), frontmatter=True)
             if skill_name:

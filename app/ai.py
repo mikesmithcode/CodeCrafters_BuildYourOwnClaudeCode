@@ -4,14 +4,14 @@ import os
 from app.load_config import API_KEY, BASE_URL, DEFAULT_MODEL, CACHE_FILE
 from app.tools import tool_list, parse_tool_call, extract_tool_calls
 from app.tools import Read, Write, Bash
-from app.skills import get_skills_msg, get_skill_body
+from app.skills import get_skills, get_skill_body
 
 
 class Agent:
     def __init__(self):
         self.client =  OpenAI(api_key=API_KEY, base_url=BASE_URL)
         self.current_response=None
-        skills_msg, skills_list = get_skills_msg()
+        skills_msg, skills_list = get_skills()
         self.message_history=[skills_msg]  
         self.skills = skills_list      
         
@@ -70,6 +70,7 @@ class Agent:
     
     def _process_prompt(self, prompt):
         if prompt.startswith("/"):
+            self.message_history = []
             skill_cmd = prompt[1:].strip().split()[0]  
             for skill in self.skills:
                 if skill == skill_cmd:
