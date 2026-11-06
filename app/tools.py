@@ -41,6 +41,8 @@ def handle_tool_calls(agent, tool_calls):
             skill_meta = agent.skills.get(skill_name, {})
             if skill_meta.get("context") == "fork":
                 msg = agent.prompt_subagent(skill_name, msg)
+        elif fn_name == 'LSP':
+            msg=LSP(tool_call_id)
         else:     
             raise Exception(f"Tool not implemented: {fn_name}")
             
@@ -90,12 +92,12 @@ def Skill(tool_call_id, name, args=""):
     "Gets the skill body, substitutes the arguments and returns a msg"
     skill_body = get_skill_body(name)
     skill_body = apply_arg_substitution(skill_body, args)
+    return tool_response(tool_call_id, skill_body)
     
-    return {
-        "role": "tool",
-        "tool_call_id": tool_call_id,
-        "content": skill_body
-    }
+def LSP(tool_call_id):
+    content="LSP is not implemented yet"
+    return tool_response(tool_call_id, content)
+    
 
 """----------------------------------------------------------------------------------------------------
 Advertise Tools
@@ -171,7 +173,38 @@ tool_list = [
                         }
                     }
                     }
-                }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "LSP",
+                        "description": "Returns the file, line, and character where a symbol is defined.",
+                        "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "operation": {
+                            "type": "string",
+                            "enum": ["goToDefinition"]
+                            },
+                            "filePath": {
+                            "type": "string",
+                            "description": "Absolute path, or a path relative to the agent's current working directory."
+                            },
+                            "line": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "description": "1-based line number of the symbol."
+                            },
+                            "character": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "description": "1-based character offset in UTF-16 code units (same as character count for ASCII)."
+                            }
+                        },
+                        "required": ["operation", "filePath", "line", "character"]
+                        }
+                    }
+                    }
             ]
 
 

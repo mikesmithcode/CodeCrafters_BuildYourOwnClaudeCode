@@ -1,7 +1,8 @@
 from openai import OpenAI
 
 
-from app.load_config import API_KEY, BASE_URL, DEFAULT_MODEL, CACHE_FILE
+from app.load_config import API_KEY, BASE_URL, DEFAULT_MODEL
+from app.lsp_client import LSPClient
 from app.tools import tool_list, extract_tool_calls, handle_tool_calls
 from app.skills import get_skills
 from app.utils import debug_trace, debug_agent
@@ -16,7 +17,9 @@ class Agent:
         
         skills_msg, skills = get_skills()
         self.message_history = [skills_msg]  
-        self.skills = skills      
+        self.skills = skills     
+        
+        self.lsp_client = LSPClient.from_environment() 
         
     @debug_agent
     def prompt(self, args):
