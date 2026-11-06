@@ -12,7 +12,9 @@ def get_skills_dir() -> Path:
 
 def get_skills():
     skills= crawl_skills()
-    msg = "You have access to the following skills:\n\n" + "\n".join(skills.values())
+    msg = "You have access to the following skills:\n\n"
+    msg += "\n".join(skills.values())
+    msg += "\n\nIf a skill matches the user's request, call the Skill tool with its name and follow the instructions it returns."
     
     skills_msg = { 
             "role": "system", 
@@ -26,10 +28,19 @@ def parse_skill_request(prompt, existing_skills):
     matches = re.findall(r'/\w+', prompt)
     skill_names = [match[1:] for match in matches if match[1:] in existing_skills]
     for skill in skill_names:
-        prompt=prompt.replace("/" + skill, "")
-    args=prompt.strip().split(" ")    
+        prompt = prompt.replace("/" + skill, "")
+    args = prompt.split() 
     return skill_names, args
 
+def create_skill_msg(skill, skill_body):
+    folder = f".claude/skills/{skill}"
+    preamble = (
+        f"Skill: {skill} (located at {folder})\n"
+        f"Paths in the instructions below are relative to that folder.\n\n"
+    )
+    # Replace relative script references so models running locally don't fail
+    skill_body = skill_body.replace("scripts/", f"{folder}/scripts/")
+    return {"role": "user", "content": preamble + skill_body}
 
 def get_skill_body(skill):
     """Convenience method to extract skill body"""
@@ -48,9 +59,11 @@ def get_skill_body(skill):
     return ""
 
 def apply_arg_substitution(body, args):
-    for i,arg in enumerate(args):
-        body=body.replace(f"${i}", arg)
-    body=body.replace("$ARGUMENTS", " ".join(args))
+    if not args:
+        return body
+    for i, arg in enumerate(args, start=1):
+        body = body.replace(f"${i}", arg)
+    body = body.replace("$ARGUMENTS", " ".join(args))
     return body
     
 

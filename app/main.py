@@ -3,12 +3,12 @@ import argparse
 from app.ai import Agent
 
 
-def main():   
+def main(debug=False):   
     p = argparse.ArgumentParser()
     p.add_argument("-p", required=True)
     args = p.parse_args()
     
-    ai=Agent()
+    ai=Agent(debug=debug)
     ai.prompt(args)    
     
 
@@ -17,4 +17,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    debug=False
+    main(debug)

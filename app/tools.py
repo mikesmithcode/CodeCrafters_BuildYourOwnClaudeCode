@@ -2,6 +2,8 @@
 import json
 import subprocess
 
+from app.skills import get_skill_body, apply_arg_substitution
+
 def tool_response(tool_call_id, content):
     return {"role": "tool",
             "tool_call_id": tool_call_id,
@@ -46,6 +48,17 @@ def Bash(tool_call_id, command):
     else:
         msg = result.stdout
     return tool_response(tool_call_id, msg)
+
+def Skill(tool_call_id, name, args=""):
+    skill_body = get_skill_body(name)
+    skill_body = apply_arg_substitution(skill_body, args)
+    
+    return {
+        "role": "tool",
+        "tool_call_id": tool_call_id,
+        "content": skill_body
+    }
+    
 
 tool_list = [
                 {
@@ -101,6 +114,21 @@ tool_list = [
                             }
                         }
                         }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                    "name": "Skill",
+                    "description": "Load a skill's instructions into the conversation",
+                    "parameters": {
+                        "type": "object",
+                        "required": ["name"],
+                        "properties": {
+                        "name": { "type": "string", "description": "The name of the skill to use" },
+                        "args": { "type": "string", "description": "Optional arguments for the skill" }
+                        }
+                    }
                     }
                 }
             ]
