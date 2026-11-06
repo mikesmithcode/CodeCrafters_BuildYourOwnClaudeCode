@@ -10,37 +10,21 @@ def get_skills_dir() -> Path:
         return cwd_skills
     return PROJECT_ROOT / ".claude" / "skills"
 
+"""--------------------------------------------------------------------------------------
+Access skills
+-----------------------------------------------------------------------------------------"""
+
 def get_skills():
     skills= crawl_skills()
     msg = "You have access to the following skills:\n\n"
-    msg += "\n".join(skills.values())
+    msg += "\n".join([value["msg"] for value in skills.values()])
     msg += "\n\nIf a skill matches the user's request, call the Skill tool with its name and follow the instructions it returns."
     
     skills_msg = { 
             "role": "system", 
-            "content": msg
+            "content": msg, 
             }
-    skills_list = skills.keys()
-    return skills_msg, skills_list
-
-def parse_skill_request(prompt, existing_skills):
-    """This is a prompt which has form /skill_name /skill_name2 arg1 arg2 etc"""
-    matches = re.findall(r'/\w+', prompt)
-    skill_names = [match[1:] for match in matches if match[1:] in existing_skills]
-    for skill in skill_names:
-        prompt = prompt.replace("/" + skill, "")
-    args = prompt.split() 
-    return skill_names, args
-
-def create_skill_msg(skill, skill_body):
-    folder = f".claude/skills/{skill}"
-    preamble = (
-        f"Skill: {skill} (located at {folder})\n"
-        f"Paths in the instructions below are relative to that folder.\n\n"
-    )
-    # Replace relative script references so models running locally don't fail
-    skill_body = skill_body.replace("scripts/", f"{folder}/scripts/")
-    return {"role": "user", "content": preamble + skill_body}
+    return skills_msg, skills
 
 def get_skill_body(skill):
     """Convenience method to extract skill body"""
@@ -58,30 +42,47 @@ def get_skill_body(skill):
                 return parse_skill_file(os.path.join(root, "SKILL.md"), frontmatter=False)
     return ""
 
-def apply_arg_substitution(body, args):
-    if not args:
-        return body
-    for i, arg in enumerate(args):
-        body = body.replace(f"${i}", arg)
-    body = body.replace("$ARGUMENTS", " ".join(args))
-    return body
-    
+
+"""------------------------------------------------------------------------------------------------------
+Processing skills requested by LLM
+---------------------------------------------------------------------------------------------------------"""
 
 def crawl_skills(): 
     """crawl skills
     
-    This works its way through every skill folder in SKILLS_DIR
-    and adds it to a dictionary"""   
+    This works its way through frontmatter of every skill folder in SKILLS_DIR
+    and adds it to a dictionary:
+        
+    skills[skill_name] = {
+        "msg": "skill_name: description",
+        "context": "fork"   # fork results in skill being handled by a subagent
+        }
+        
+        
+        """   
     skills = {}
     skills_dir = get_skills_dir()
     for root, _, files in os.walk(skills_dir):
         if "SKILL.md" in files:
-            skill_name, description = parse_skill_file(os.path.join(root, "SKILL.md"), frontmatter=True)
+            skill_name, description, context = parse_skill_file(os.path.join(root, "SKILL.md"), frontmatter=True)
             if skill_name:
-                skills[skill_name] = f"- {skill_name}: {description}"
+                skills[skill_name] = {"msg": f"- {skill_name}: {description}", "context": context}
     
     return skills
 
+def parse_skill_request(prompt, existing_skills):
+    """This is a prompt which has form /skill_name /skill_name2 arg1 arg2 etc"""
+    matches = re.findall(r'/\w+', prompt)
+    skill_names = [match[1:] for match in matches if match[1:] in existing_skills]
+    for skill in skill_names:
+        prompt = prompt.replace("/" + skill, "")
+    args = prompt.split() 
+    return skill_names, args
+
+
+"""-----------------------------------------------------------------------------------------------------
+Responding to the AI with a skill msg
+---------------------------------------------------------------------------------------------------------"""
 
 def parse_skill_file(filepath, frontmatter=True):
     """Parsing the skill file
@@ -94,6 +95,7 @@ def parse_skill_file(filepath, frontmatter=True):
     """
     name = ""
     description = ""
+    context = None
     body_lines = []
     seen_delimiters = 0
     
@@ -106,7 +108,7 @@ def parse_skill_file(filepath, frontmatter=True):
                 seen_delimiters += 1
                 if frontmatter and seen_delimiters == 2:
                     # Finished reading frontmatter
-                    return name, description
+                    break
                 continue
             
             # Between the 1st and 2nd delimiter: inside frontmatter
@@ -116,6 +118,8 @@ def parse_skill_file(filepath, frontmatter=True):
                     name = stripped.split(":", 1)[1].strip().strip('"\'')
                 elif lower.startswith("description:"):
                     description = stripped.split(":", 1)[1].strip().strip('"\'')
+                elif lower.startswith("context:"):
+                    context = stripped.split(":", 1)[1].strip().strip('"\'')
             
             # After the 2nd delimiter: inside body
             elif seen_delimiters >= 2:
@@ -123,8 +127,31 @@ def parse_skill_file(filepath, frontmatter=True):
                     body_lines.append(line)
                     
     if frontmatter:
-        return name, description
+        return name, description, context
         
     return "".join(body_lines).strip()
 
+
+def create_skill_msg(skill, skill_body):
+    folder = f".claude/skills/{skill}"
+    preamble = (
+        f"Skill: {skill} (located at {folder})\n"
+        f"Paths in the instructions below are relative to that folder.\n\n"
+    )
+    # Replace relative script references so models running locally don't fail
+    skill_body = skill_body.replace("scripts/", f"{folder}/scripts/")
+    return {"role": "user", "content": preamble + skill_body}
+
+
+def apply_arg_substitution(body, args):
+    if not args:
+        return body
+    for i, arg in enumerate(args):
+        body = body.replace(f"${i}", arg)
+    body = body.replace("$ARGUMENTS", " ".join(args))
+    return body
     
+
+
+
+

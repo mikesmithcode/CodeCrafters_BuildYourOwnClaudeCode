@@ -3,12 +3,13 @@ import json
 import subprocess
 
 from app.skills import get_skill_body, apply_arg_substitution
+from app.utils import debug_trace
 
-def tool_response(tool_call_id, content):
-    return {"role": "tool",
-            "tool_call_id": tool_call_id,
-            "content": content}
 
+"""-------------------------------------------------------------------------------------------------
+functions to help with executing and responding to tool requests from LLM
+----------------------------------------------------------------------------------------------"""
+@debug_trace
 def extract_tool_calls(message):
     """Extracts the tool_calls from the openai response"""
     try:
@@ -18,8 +19,44 @@ def extract_tool_calls(message):
     except Exception as e:
         print(f"Error extracting tool_call: {e}")
         return None
+
+@debug_trace
+def handle_tool_calls(agent, tool_calls):
+    """Executes tool calls requested by the LLM."""
+    new_messages = []
+    for tool_call in tool_calls:
+        fn_name, tool_call_id, args = parse_tool_call(tool_call)
         
+        if fn_name == 'Read':
+            msg = Read(tool_call_id, args["file_path"])
+        elif fn_name == 'Write':
+            msg = Write(tool_call_id, args["file_path"], args["content"])  
+        elif fn_name == 'Bash':
+            msg = Bash(tool_call_id, args["command"])  
+        elif fn_name == 'Skill':
+            skill_name=args["name"]
+            skill_args=args.get("args", "")
+            
+            msg = Skill(tool_call_id, skill_name, skill_args)
+            skill_meta = agent.skills.get(skill_name, {})
+            if skill_meta.get("context") == "fork":
+                msg = agent.prompt_subagent(skill_name, msg)
+        else:     
+            raise Exception(f"Tool not implemented: {fn_name}")
+            
+        new_messages.append(msg)
+    return new_messages
+
+
+def tool_response(tool_call_id, content):
+    """Formats the output of tools to add to messages sent back to LLM"""
+    return {"role": "tool",
+            "tool_call_id": tool_call_id,
+            "content": content}
+
+
 def parse_tool_call(tool_call):
+    """Extracts important info from a tool_call request"""
     fn_name = tool_call.function.name
     id = tool_call.id
     args = json.loads(tool_call.function.arguments)
@@ -50,6 +87,7 @@ def Bash(tool_call_id, command):
     return tool_response(tool_call_id, msg)
 
 def Skill(tool_call_id, name, args=""):
+    "Gets the skill body, substitutes the arguments and returns a msg"
     skill_body = get_skill_body(name)
     skill_body = apply_arg_substitution(skill_body, args)
     
@@ -58,7 +96,10 @@ def Skill(tool_call_id, name, args=""):
         "tool_call_id": tool_call_id,
         "content": skill_body
     }
-    
+
+"""----------------------------------------------------------------------------------------------------
+Advertise Tools
+----------------------------------------------------------------------------------------------------"""
 
 tool_list = [
                 {
