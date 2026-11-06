@@ -61,7 +61,7 @@ def get_skill_body(skill):
 def apply_arg_substitution(body, args):
     if not args:
         return body
-    for i, arg in enumerate(args, start=1):
+    for i, arg in enumerate(args):
         body = body.replace(f"${i}", arg)
     body = body.replace("$ARGUMENTS", " ".join(args))
     return body
